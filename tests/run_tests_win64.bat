@@ -32,8 +32,14 @@ MKDIR %BUILD_DIR%
 SET TESTS=gs_mem_alloc_test
 
 FOR %%a in (%TESTS%) do (
+  ECHO Executing %%a test
   %BUILD_DIR%\%%a.exe 
-  IF ERRORLEVEL 1 GOTO Failure
+  IF ERRORLEVEL 1 (
+    ECHO %%a test failed
+    GOTO Failure
+  ) ELSE (
+    ECHO %%a run successful 
+  )
 ) 
 
 

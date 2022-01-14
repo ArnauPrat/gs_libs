@@ -186,34 +186,47 @@ gs_alloc_ptr(GSAlloc* alloc);     // The alloc to get the ptr from
 ////////////////////////////////////////////////
 
 #define GS_STACK_PUSH(stack, size)\
-gs_stack_push(stack,\
-               size,\
-               GS_MIN_ALIGNMENT);
+                gs_stack_push(stack,\
+                               size,\
+                               GS_MIN_ALIGNMENT)
 
 #define GS_STACK_PUSH_CHECKED(stack, size)\
-gs_stack_push_CHECKED(stack,\
-                       size,\
-                       GS_MIN_ALIGNMENT);
+                gs_stack_push_CHECKED(stack,\
+                                       size,\
+                                       GS_MIN_ALIGNMENT)
 
+#define GS_STACK_PUSH_ALIGNED(stack, size, alignment)\
+                gs_stack_push(stack,\
+                              size,\
+                              alignment)
+
+#define GS_STACK_PUSH_ALIGNED_CHECKED(stack, size, alignment)\
+                gs_stack_push_CHECKED(stack,\
+                                       size,\
+                                       alignment)
 
 #define GS_STACK_PUSH_ALL(stack, size)\
-gs_stack_push_all(stack,\
-                   GS_MIN_ALIGNMENT,\
-                   size);
+                gs_stack_push_all(stack,\
+                                   GS_MIN_ALIGNMENT,\
+                                   size)
 
 #define GS_STACK_PUSH_ALL_CHECKED(stack, size)\
-gs_stack_push_all_CHECKED(stack,\
-                           GS_MIN_ALIGNMENT,\
-                           size);
+                gs_stack_push_all_CHECKED(stack,\
+                                          GS_MIN_ALIGNMENT,\
+                                          size)
 
 #define GS_STACK_POP(stack, ptr)\
-    gs_stack_pop(stack, ptr);
+                gs_stack_pop(stack, ptr)
 
 #define GS_STACK_CHECKPOINT(_stack)\
-    *(_stack)
+                *(_stack)
 
 #define GS_STACK_RESTORE(_stack, _checkpoint)\
-    *(_stack) = _checkpoint
+                *(_stack) = _checkpoint
+
+#define GS_STACK_FLUSH(_stack)\
+                gs_stack_flush(_stack)
+
 
 typedef struct GSStack 
 {
@@ -316,6 +329,9 @@ gs_stack_pop(GSStack* stack,                                                    
           *(_scratch) = _checkpoint;\
           }
 
+#define GS_SCRATCH_FLUSH(_scratch)\
+         gs_scratch_flush(_scratch)
+
 typedef struct GSScratch
 {
   bool valid;
@@ -392,6 +408,10 @@ gs_scratch_flush(GSScratch* scratch);                                           
 
 #define GS_POOL_FREE(pool, ptr)\
     gs_pool_free(pool, ptr);
+
+#define GS_POOL_FLUSH(pool)\
+    gs_pool_flush(pool);
+
 
 typedef struct GSPool 
 {
@@ -524,10 +544,10 @@ gs_stack_init(void* mem_ptr,
 {
   GS_ASSERT(mem_ptr != NULL && 
             "GSStack mem ptr cannot be NULL")
-  GSStack stack = {.p_begin = mem_ptr, 
-                   .p_current = mem_ptr,
-                   .p_end = ((char*)mem_ptr)+size};
-
+  GSStack stack; 
+  stack.p_begin = mem_ptr;
+  stack.p_current = mem_ptr; 
+  stack.p_end = ((char*)mem_ptr)+size;
   stack.valid = true;
   return stack;
 }
@@ -552,7 +572,12 @@ gs_stack_push(GSStack* stack,
   new_current+=GS_PTR_ALIGNMENT;
 
   if(new_current >= (char*)stack->p_end)
-    return (GSAlloc){.ptr = NULL};
+  {
+    GSAlloc alloc;
+    alloc.ptr = NULL;
+    alloc.checked = false;
+    return alloc; 
+  }
 
   GS_ASSERT(stack->p_current && "GSStack previous base cannot be set to NULL");
   *(GS_PTR_NUMERIC_TYPE*)(new_current - GS_PTR_ALIGNMENT) = (GS_PTR_NUMERIC_TYPE)stack->p_current;
@@ -561,7 +586,10 @@ gs_stack_push(GSStack* stack,
 #ifdef GS_MEM_ALLOC_INITIALIZE_TO_ZERO
   memset(ret, 0, size);
 #endif
-  return (GSAlloc){.ptr = ret};
+  GSAlloc alloc;
+  alloc.ptr = ret;
+  alloc.checked = false;
+  return alloc;
 }
 
 void*
@@ -605,7 +633,12 @@ gs_stack_push_all(GSStack* stack,
   }
 
   if(new_current >= (char*)stack->p_end)
-    return (GSAlloc){.ptr = NULL};
+  {
+    GSAlloc alloc;
+    alloc.ptr = NULL;
+    alloc.checked = false;
+    return alloc;
+  }
 
   GS_ASSERT(stack->p_current && "GSStack previous base cannot be set to NULL");
   *(GS_PTR_NUMERIC_TYPE*)(new_current) = (GS_PTR_NUMERIC_TYPE)stack->p_current;
@@ -615,7 +648,10 @@ gs_stack_push_all(GSStack* stack,
 #ifdef GS_MEM_ALLOC_INITIALIZE_TO_ZERO
   memset(ret, 0, *size);
 #endif
-  return (GSAlloc){.ptr = ret};
+  GSAlloc alloc;
+  alloc.ptr = ret;
+  alloc.checked = false;
+  return alloc;
 }
 
 void*
@@ -671,11 +707,10 @@ gs_scratch_init(void* base_addr,
   GS_ASSERT(((unsigned long long)base_addr % GS_MIN_ALIGNMENT) == 0 && 
             "GSScratch mem ptr must be aligned to GS_MIN_ALINGMENT")
 
-  GSScratch scratch = {.p_begin = base_addr, 
-                       .p_current = base_addr,
-                       .p_end = (char*)base_addr + size
-                      };
- 
+  GSScratch scratch;
+  scratch.p_begin = base_addr; 
+  scratch.p_current = base_addr;
+  scratch.p_end = (char*)base_addr + size;
   scratch.valid = true;
   return scratch;
 }
@@ -694,13 +729,21 @@ gs_scratch_push(GSScratch* scratch,
 
   char* new_current = ((char*)ret) + size;
   if(new_current >= (char*)scratch->p_end)
-    return (GSAlloc){.ptr = NULL};
+  {
+    GSAlloc alloc;
+    alloc.ptr = NULL;
+    alloc.checked = false;
+    return alloc;
+  }
   scratch->p_current = new_current;
 
 #ifdef GS_MEM_ALLOC_INITIALIZE_TO_ZERO
   memset(ret, 0, size);
 #endif
-  return (GSAlloc){.ptr = ret};
+  GSAlloc alloc;
+  alloc.ptr = ret;
+  alloc.checked = false;
+  return alloc;
 }
 
 void*
@@ -730,7 +773,12 @@ gs_scratch_push_all(GSScratch* scratch,
             "GSScrachMemAlloc aligned address is not correclty computed")
 
   if((char*)ret >= (char*)scratch->p_end)
-    return (GSAlloc){.ptr = NULL};
+  {
+    GSAlloc alloc;
+    alloc.ptr = NULL;
+    alloc.checked = false;
+    return alloc;
+  }
 
   *size = ((GS_PTR_NUMERIC_TYPE)scratch->p_end) - ((GS_PTR_NUMERIC_TYPE)ret);
   scratch->p_current = scratch->p_end;
@@ -738,7 +786,10 @@ gs_scratch_push_all(GSScratch* scratch,
 #ifdef GS_MEM_ALLOC_INITIALIZE_TO_ZERO
   memset(ret, 0, *size);
 #endif
-  return (GSAlloc){.ptr = ret};
+  GSAlloc alloc;
+  alloc.ptr = ret;
+  alloc.checked = false;
+  return alloc;
 }
 
 void*
@@ -777,35 +828,26 @@ gs_pool_init(void* mem_ptr,
   GS_ASSERT(mem_ptr != NULL && 
             "GSPool mem ptr cannot be NULL")
 
-  GSPool pool = {
-    .p_begin = mem_ptr, 
-    .p_current = mem_ptr, 
-    .p_end = (char*)mem_ptr + size, 
-    .bsize = bsize, 
-    .alignment = alignment
-  };
-
+  GSPool pool;
+  pool.p_begin = mem_ptr;
+  pool.p_end = (char*)mem_ptr + size; 
+  pool.bsize = bsize; 
+  pool.alignment = alignment;
+  pool.p_next_free = NULL;
 
   if(pool.bsize < sizeof(GS_PTR_NUMERIC_TYPE))
   {
     pool.bsize = sizeof(GS_PTR_NUMERIC_TYPE);
   }
+  GS_ALIGN_PTR(pool.p_begin, alignment)
 
-  unsigned int slack = alignment - ((GS_PTR_NUMERIC_TYPE)pool.p_begin % alignment);
-
-  if(slack != alignment)
-  {
-    pool.p_begin = (char*)pool.p_begin + slack;
-    pool.p_current = pool.p_begin;
-  }
+  pool.p_current = pool.p_begin;
   pool.stride = bsize;
-
-  unsigned int stride_slack = alignment - (bsize % alignment);
-  if(stride_slack != alignment )
+  unsigned int modulo = bsize & (alignment-1);
+  if(modulo != 0)
   {
-    pool.stride += stride_slack;
+    pool.stride += alignment - modulo;
   }
-
   pool.valid = true;
   return pool;
 }
@@ -844,21 +886,31 @@ gs_pool_alloc(GSPool* pool,
   {
     ret = pool->p_current;
     pool->p_current = (char*)pool->p_current + pool->stride;
+    GS_ASSERT((GS_PTR_NUMERIC_TYPE)pool->p_current % alignment == 0)
   }
 
-  GS_ASSERT(((unsigned long long)ret) % alignment == 0 && 
-            "GSStackMemAlloc has a bug at computing a properly aligned address")
+  if(((unsigned long long)ret) % alignment != 0 )
+  {
+    GS_ASSERT(((unsigned long long)ret) % alignment == 0 && 
+            "GSPool has a bug at computing a properly aligned address")
+  }
 
   if((void*)(ret + size) >= pool->p_end)
   {
-    return (GSAlloc){.ptr = NULL};
+    GSAlloc alloc;
+    alloc.ptr = NULL;
+    alloc.checked = false;
+    return alloc;
   }
 
 #ifdef GS_MEM_ALLOC_INITIALIZE_TO_ZERO
   memset(ret, 0, pool->bsize);
 #endif
 
-  return (GSAlloc){.ptr = ret};
+  GSAlloc alloc;
+  alloc.ptr = ret;
+  alloc.checked = false;
+  return alloc;
 }
 
 void*
@@ -878,10 +930,13 @@ gs_pool_alloc_CHECKED(GSPool* pool,
 
 void 
 gs_pool_free(GSPool* pool, 
-                          void* ptr)
+             void* ptr)
 {
   GS_ASSERT(pool->valid == true && 
             "GSPool cannot free from an invalid pool mem alloc")
+  GS_ASSERT(((GS_PTR_NUMERIC_TYPE)ptr % pool->alignment == 0) && "GSPool this should not happen")
+  GS_ASSERT(((GS_PTR_NUMERIC_TYPE)ptr >= (GS_PTR_NUMERIC_TYPE)pool->p_begin && (GS_PTR_NUMERIC_TYPE)ptr < (GS_PTR_NUMERIC_TYPE)pool->p_current) && "GSPool invalid freed ptr")
+
   *(GS_PTR_NUMERIC_TYPE*)ptr = (GS_PTR_NUMERIC_TYPE)pool->p_next_free;
   pool->p_next_free = ptr;
 }
