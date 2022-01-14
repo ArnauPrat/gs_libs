@@ -18,11 +18,8 @@ jobs:
       shell: cmd.exe
     steps:
       - checkout
-      - run: 
-          command: run_varsall.bat
-          working_directory: ./tests
-      - run: 
-          command: compile_win64.bat /t DEBUG
+      - run:
+          command: run_varsall.bat && compile_win64.bat /t DEBUG
           working_directory: ./tests
       - run: 
           command: run_tests_win64.bat /t DEBUG
