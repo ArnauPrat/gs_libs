@@ -54,7 +54,7 @@
 // method, and GS_MEM_ALLOC_DISABLE_ASSERTS is not set, an assert will be
 // thrown. For instance, a common usage is as follows:
 //
-// GSAlloc alloc = gs_stack_push(stack, size, GS_MIN_ALIGNMENT);
+// GSAlloc alloc = gs_stack_push(stack, size, GS_MEM_ALLOC_MIN_ALIGNMENT);
 // if(gs_alloc_is_null(&alloc))
 // {
 //    // error handling code
@@ -66,7 +66,7 @@
 // The following code will throw an assert if GS_MEM_ALLOC_DISABLE_ASSERTS is
 // not defined:
 //
-// GSAlloc alloc = gs_stack_push(stack, size, GS_MIN_ALIGNMENT);
+// GSAlloc alloc = gs_stack_push(stack, size, GS_MEM_ALLOC_MIN_ALIGNMENT);
 // void* data = gs_alloc_ptr(&alloc);
 //
 // GS_MIN_ALINGMENT is a convenience macro specifying the minimum alignment that
@@ -93,15 +93,16 @@
 //
 // - GS_MIN_ALINGMENT                 : The minimum alignment guaranteed to work for
 //                                      any basic data time. Default: 16
-// - GS_PTR_NUMERIC_TYPE              : Numeric type used to manipulate pointer
+// - GS_MEM_ALLOC_PTR_NUMERIC_TYPE              : Numeric type used to manipulate pointer
 //                                      addresses. Default: unsigned long long
-// - GS_PTR_ALIGNMENT                 : Alignment used when storing pointers in
+// - GS_MEM_ALLOC_PTR_ALIGNMENT                 : Alignment used when storing pointers in
 //                                      memory. Default: sizeof(void*)
 // - GS_MEM_ALLOC_DISABLE_ASSERTS     : If defined, disables asserts
 // - GS_MEM_ALLOC_DISABLE_CHECKS      : If defined, disables asserts in "CHECKED"
 //                                      allocation operations
 // - GS_MEM_ALLOC_INITIALIZE_TO_ZERO  : If defined, all allocations are zero
 //                                      initialized
+// - GS_MEM_ALLOC_STATIC              : Makes the methods static
 //
 ////////////////////////////////////////////////
 /////////////////// LICENSE ////////////////////
@@ -136,29 +137,36 @@ extern "C" {
 #include <stdbool.h>
 #endif
 
-
-#ifndef GS_MIN_ALIGNMENT
-#define GS_MIN_ALIGNMENT          16
+#ifdef GS_MEM_ALLOC_STATIC
+#define GS_MEM_ALLOC_VISIBILITY static
+#else
+#define GS_MEM_ALLOC_VISIBILITY
 #endif
 
-#ifndef GS_PTR_NUMERIC_TYPE
-#define GS_PTR_NUMERIC_TYPE       unsigned long long 
+
+
+#ifndef GS_MEM_ALLOC_MIN_ALIGNMENT
+#define GS_MEM_ALLOC_MIN_ALIGNMENT          16
 #endif
 
-#ifndef GS_PTR_ALIGNMENT
-#define GS_PTR_ALIGNMENT          sizeof(void*)
+#ifndef GS_MEM_ALLOC_PTR_NUMERIC_TYPE
+#define GS_MEM_ALLOC_PTR_NUMERIC_TYPE       unsigned long long 
+#endif
+
+#ifndef GS_MEM_ALLOC_PTR_ALIGNMENT
+#define GS_MEM_ALLOC_PTR_ALIGNMENT          sizeof(void*)
 #endif
 
 #define GS_PTR_DIFF(ptr1, ptr2)\
-            ((GS_PTR_NUMERIC_TYPE)ptr1) - ((GS_PTR_NUMERIC_TYPE)ptr2)
+            ((GS_MEM_ALLOC_PTR_NUMERIC_TYPE)ptr1) - ((GS_MEM_ALLOC_PTR_NUMERIC_TYPE)ptr2)
 
 
 #define GS_ALIGN_PTR(ptr, alignment)\
                     {\
-                      int modulo = ((GS_PTR_NUMERIC_TYPE)ptr & (alignment-1));/* this only works for power of two alignments*/\
+                      int modulo = ((GS_MEM_ALLOC_PTR_NUMERIC_TYPE)ptr & (alignment-1));/* this only works for power of two alignments*/\
                       if(modulo != 0)\
                       {\
-                        ptr = (void*)((GS_PTR_NUMERIC_TYPE)ptr + (alignment-modulo));\
+                        ptr = (void*)((GS_MEM_ALLOC_PTR_NUMERIC_TYPE)ptr + (alignment-modulo));\
                       }\
                     }
 
@@ -174,10 +182,12 @@ typedef struct GSAlloc
 } GSAlloc;
 
 // Checks if the allocation is NULL and sets the alloc as checked
+GS_MEM_ALLOC_VISIBILITY
 bool
 gs_alloc_is_null(GSAlloc* alloc); // The alloc to check NULL for
 
 // Gets the pointer of an alloc. Throws an assert if not checked
+GS_MEM_ALLOC_VISIBILITY
 void* 
 gs_alloc_ptr(GSAlloc* alloc);     // The alloc to get the ptr from
 
@@ -188,12 +198,12 @@ gs_alloc_ptr(GSAlloc* alloc);     // The alloc to get the ptr from
 #define GS_STACK_PUSH(stack, size)\
                 gs_stack_push(stack,\
                                size,\
-                               GS_MIN_ALIGNMENT)
+                               GS_MEM_ALLOC_MIN_ALIGNMENT)
 
 #define GS_STACK_PUSH_CHECKED(stack, size)\
                 gs_stack_push_CHECKED(stack,\
                                        size,\
-                                       GS_MIN_ALIGNMENT)
+                                       GS_MEM_ALLOC_MIN_ALIGNMENT)
 
 #define GS_STACK_PUSH_ALIGNED(stack, size, alignment)\
                 gs_stack_push(stack,\
@@ -207,12 +217,12 @@ gs_alloc_ptr(GSAlloc* alloc);     // The alloc to get the ptr from
 
 #define GS_STACK_PUSH_ALL(stack, size)\
                 gs_stack_push_all(stack,\
-                                   GS_MIN_ALIGNMENT,\
+                                   GS_MEM_ALLOC_MIN_ALIGNMENT,\
                                    size)
 
 #define GS_STACK_PUSH_ALL_CHECKED(stack, size)\
                 gs_stack_push_all_CHECKED(stack,\
-                                          GS_MIN_ALIGNMENT,\
+                                          GS_MEM_ALLOC_MIN_ALIGNMENT,\
                                           size)
 
 #define GS_STACK_POP(stack, ptr)\
@@ -240,6 +250,7 @@ typedef GSStack GSStackCheckpoint;
 
 //Returns a new initialized stack allocator. If the operation fails the returned
 //stack is not marked as valid
+GS_MEM_ALLOC_VISIBILITY
 GSStack
 gs_stack_init(void* mem_ptr,                                                    // The pointer to the memory region for the stack
               unsigned long long size);                                         // The size of the memory region
@@ -247,6 +258,7 @@ gs_stack_init(void* mem_ptr,                                                    
 
 
 //Flushes the stack mem alloc
+GS_MEM_ALLOC_VISIBILITY
 void
 gs_stack_flush(GSStack* stack);                                                 // stack The stack mem alloc to flush 
 
@@ -254,6 +266,7 @@ gs_stack_flush(GSStack* stack);                                                 
 
 // Requests a new memory block from the stack memory allocator. The alloc is
 // NULL if the requested block cannot be allocated
+GS_MEM_ALLOC_VISIBILITY
 GSAlloc
 gs_stack_push(GSStack* stack,                                                   // The stack memory allocator to request the address from
               unsigned long long size,                                          // The size to reques
@@ -264,6 +277,7 @@ gs_stack_push(GSStack* stack,                                                   
 // Requests a new memory block from the stack memory allocator. This a CHECKED
 // operation, thus it will throw an assert if the allocation fails (the returned
 // pointer is NULL) unless GS_MEM_ALLOC_DISABLE_CHECKS is defined
+GS_MEM_ALLOC_VISIBILITY
 void*
 gs_stack_push_CHECKED(GSStack* stack,                                           // The stack to allocate from
                       unsigned long long size,                                  // The size of the allocation
@@ -273,6 +287,7 @@ gs_stack_push_CHECKED(GSStack* stack,                                           
 
 // Requests all the remaining memory from the stack. The alloc is
 // NULL if the requested block cannot be allocated
+GS_MEM_ALLOC_VISIBILITY
 GSAlloc
 gs_stack_push_all(GSStack* stack,                                               // The stack to allocate from
                   unsigned int alignment,                                       // The alignment of the allocation
@@ -283,6 +298,7 @@ gs_stack_push_all(GSStack* stack,                                               
 // Requests all the remaiing memory from the stack. This a CHECKED
 // operation, thus it will throw an assert if the allocation fails (the returned
 // pointer is NULL) unless GS_MEM_ALLOC_DISABLE_CHECKS is defined
+GS_MEM_ALLOC_VISIBILITY
 void*
 gs_stack_push_all_CHECKED(GSStack* stack,                                       // The stack to allocate from
                           unsigned int alignment,                               // The alignment of the allocation
@@ -294,6 +310,7 @@ gs_stack_push_all_CHECKED(GSStack* stack,                                       
 // for correctness. If GS_MEM_ALLOC_DISABLE_ASSERTS is not defined, 
 // the implementation will check that ptr is actually the allocation at the top and
 // throw an assert if this is not the case.
+GS_MEM_ALLOC_VISIBILITY
 void
 gs_stack_pop(GSStack* stack,                                                    // The stack memory allocator to pop from
              void* ptr);                                                        // The start address region expected to pop, passed for correctness checks.
@@ -304,10 +321,10 @@ gs_stack_pop(GSStack* stack,                                                    
 ////////////////////////////////////////////////
 
 #define GS_SCRATCH_PUSH(scratch, size)\
-          gs_scratch_push(scratch, size, GS_MIN_ALIGNMENT)
+          gs_scratch_push(scratch, size, GS_MEM_ALLOC_MIN_ALIGNMENT)
 
 #define GS_SCRATCH_PUSH_CHECKED(scratch, size)\
-          gs_scratch_push_CHECKED(scratch, size, GS_MIN_ALIGNMENT)
+          gs_scratch_push_CHECKED(scratch, size, GS_MEM_ALLOC_MIN_ALIGNMENT)
 
 #define GS_SCRATCH_PUSH_ALIGNED(scratch, size, alignment)\
           gs_scratch_push(scratch, size, alignment)
@@ -316,10 +333,10 @@ gs_stack_pop(GSStack* stack,                                                    
           gs_scratch_push_CHECKED(scratch, size, alignment)
 
 #define GS_SCRATCH_PUSH_ALL(scratch, allocated)\
-          gs_scratch_push_all(scratch, GS_MIN_ALIGNMENT, allocated)
+          gs_scratch_push_all(scratch, GS_MEM_ALLOC_MIN_ALIGNMENT, allocated)
 
 #define GS_SCRATCH_PUSH_ALL_CHECKED(scratch, allocated)\
-          gs_scratch_push_all_CHECKED(scratch, GS_MIN_ALIGNMENT, allocated)
+          gs_scratch_push_all_CHECKED(scratch, GS_MEM_ALLOC_MIN_ALIGNMENT, allocated)
 
 #define GS_SCRATCH_CHECKPOINT(_scratch)\
           *(_scratch)
@@ -343,6 +360,7 @@ typedef struct GSScratch
 typedef GSScratch GSScratchCheckpoint;
 
  // Returns a new initialized scratch maked valid if the operation succeeds
+GS_MEM_ALLOC_VISIBILITY
 GSScratch
 gs_scratch_init(void* base_addr,                                                // base_addr The base address of the allocator
                 unsigned long long size);                                       // The size of the allocator
@@ -351,6 +369,7 @@ gs_scratch_init(void* base_addr,                                                
 
 // Returns a new memory block from the scratch. The alloc is
 // NULL if the requested block cannot be allocated
+GS_MEM_ALLOC_VISIBILITY
 GSAlloc
 gs_scratch_push(GSScratch* scratch,                                             // The memory allocator to allocate from
                  unsigned long long  size,                                      // The size to allocate
@@ -361,6 +380,7 @@ gs_scratch_push(GSScratch* scratch,                                             
 // Retursn a new memory block from the scratch. This a CHECKED
 // operation, thus it will throw an assert if the allocation fails (the returned
 // pointer is NULL) unless GS_MEM_ALLOC_DISABLE_CHECKS is defined
+GS_MEM_ALLOC_VISIBILITY
 void*
 gs_scratch_push_CHECKED(GSScratch* scratch,                                     // The memory allocator to allocate from
                          unsigned long long  size,                              // The size to allocate                      
@@ -370,6 +390,7 @@ gs_scratch_push_CHECKED(GSScratch* scratch,                                     
 
 // Returns all the remianing memory in the scratch. The alloc is
 // NULL if the requested block cannot be allocated
+GS_MEM_ALLOC_VISIBILITY
 GSAlloc
 gs_scratch_push_all(GSScratch* scratch,                                         // The mem alloc to allocate to
                      unsigned int alignment,                                    // The alignment of the requested allocation
@@ -380,6 +401,7 @@ gs_scratch_push_all(GSScratch* scratch,                                         
 // Returns all the remianing memory in the scratch. This a CHECKED
 // operation, thus it will throw an assert if the allocation fails (the returned
 // pointer is NULL) unless GS_MEM_ALLOC_DISABLE_CHECKS is defined
+GS_MEM_ALLOC_VISIBILITY
 void*
 gs_scratch_push_all_CHECKED(GSScratch* scratch,                                 // The mem alloc to allocate to
                              unsigned int alignment,                            // The alignment of the requested allocation  
@@ -388,6 +410,7 @@ gs_scratch_push_all_CHECKED(GSScratch* scratch,                                 
 
 
 // Flushes the scratch memory allocator
+GS_MEM_ALLOC_VISIBILITY
 void
 gs_scratch_flush(GSScratch* scratch);                                            // The scratch to flush
 
@@ -426,6 +449,7 @@ typedef struct GSPool
 } GSPool;
 
  // Returns a new initialized pool maked valid if the operation succeeds
+GS_MEM_ALLOC_VISIBILITY
 GSPool
 gs_pool_init(void* mem_ptr,                                                     // The pointer to the starting address for the pool
              unsigned long long size,                                           // The size of the pool in bytes
@@ -435,6 +459,7 @@ gs_pool_init(void* mem_ptr,                                                     
 
 
 // Flushes the memory allocator
+GS_MEM_ALLOC_VISIBILITY
 void
 gs_pool_flush(GSPool* pool);
 
@@ -444,6 +469,7 @@ gs_pool_flush(GSPool* pool);
 // specified during the pool initialization. The size and alignment
 // parameters are used for checking the usage correctness. The alloc is NULL if 
 // there is not enough space in the pool
+GS_MEM_ALLOC_VISIBILITY
 GSAlloc
 gs_pool_alloc(GSPool* pool,                                                     // The pool mem alloc to use
               unsigned long long size,                                          // The size of the memory block (used for debugging purposes)
@@ -456,6 +482,7 @@ gs_pool_alloc(GSPool* pool,                                                     
 // parameters are used for checking the usage correctness. This a CHECKED
 // operation, thus it will throw an assert if the allocation fails (the returned
 // pointer is NULL) unless GS_MEM_ALLOC_DISABLE_CHECKS is defined
+GS_MEM_ALLOC_VISIBILITY
 void*
 gs_pool_alloc_CHECKED(GSPool* pool,                                             // The pool mem alloc to use
                       unsigned long long size,                                  // The size of the memory block (used for debugging purposes)
@@ -464,6 +491,7 @@ gs_pool_alloc_CHECKED(GSPool* pool,                                             
 
 
 // Frees a block allocated with the pool 
+GS_MEM_ALLOC_VISIBILITY
 void 
 gs_pool_free(GSPool* pool,                                                      // The pool mem alloc to use
              void* ptr);                                                        // The address to the block to deallocate
@@ -520,6 +548,7 @@ extern "C" {
 ////////////////////////////////////////////////
 /////////////////// ALLOC //////////////////////
 ////////////////////////////////////////////////
+GS_MEM_ALLOC_VISIBILITY
 bool
 gs_alloc_is_null(GSAlloc* alloc)
 {
@@ -527,6 +556,7 @@ gs_alloc_is_null(GSAlloc* alloc)
   return alloc->ptr == NULL;
 }
 
+GS_MEM_ALLOC_VISIBILITY
 void* 
 gs_alloc_ptr(GSAlloc* alloc)
 {
@@ -538,6 +568,7 @@ gs_alloc_ptr(GSAlloc* alloc)
 ////////////////// STACK ///////////////////////
 ////////////////////////////////////////////////
 
+GS_MEM_ALLOC_VISIBILITY
 GSStack
 gs_stack_init(void* mem_ptr, 
               unsigned long long size)
@@ -552,6 +583,7 @@ gs_stack_init(void* mem_ptr,
   return stack;
 }
 
+GS_MEM_ALLOC_VISIBILITY
 GSAlloc
 gs_stack_push(GSStack* stack, 
                         unsigned long long size,
@@ -568,8 +600,8 @@ gs_stack_push(GSStack* stack,
 
 
   char* new_current = ret+size;
-  GS_ALIGN_PTR(new_current, GS_PTR_ALIGNMENT);
-  new_current+=GS_PTR_ALIGNMENT;
+  GS_ALIGN_PTR(new_current, GS_MEM_ALLOC_PTR_ALIGNMENT);
+  new_current+=GS_MEM_ALLOC_PTR_ALIGNMENT;
 
   if(new_current >= (char*)stack->p_end)
   {
@@ -580,7 +612,7 @@ gs_stack_push(GSStack* stack,
   }
 
   GS_ASSERT(stack->p_current && "GSStack previous base cannot be set to NULL");
-  *(GS_PTR_NUMERIC_TYPE*)(new_current - GS_PTR_ALIGNMENT) = (GS_PTR_NUMERIC_TYPE)stack->p_current;
+  *(GS_MEM_ALLOC_PTR_NUMERIC_TYPE*)(new_current - GS_MEM_ALLOC_PTR_ALIGNMENT) = (GS_MEM_ALLOC_PTR_NUMERIC_TYPE)stack->p_current;
   stack->p_current = new_current; 
 
 #ifdef GS_MEM_ALLOC_INITIALIZE_TO_ZERO
@@ -592,6 +624,7 @@ gs_stack_push(GSStack* stack,
   return alloc;
 }
 
+GS_MEM_ALLOC_VISIBILITY
 void*
 gs_stack_push_CHECKED(GSStack* stack, 
                         unsigned long long size,
@@ -606,6 +639,7 @@ gs_stack_push_CHECKED(GSStack* stack,
   return gs_alloc_ptr(&alloc);
 }
 
+GS_MEM_ALLOC_VISIBILITY
 GSAlloc
 gs_stack_push_all(GSStack* stack, 
                             unsigned int alignment,
@@ -622,12 +656,12 @@ gs_stack_push_all(GSStack* stack,
             "GSStack has a bug at computing a properly aligned address")
 
   char* new_current = stack->p_end;
-  new_current -= GS_PTR_ALIGNMENT;
+  new_current -= GS_MEM_ALLOC_PTR_ALIGNMENT;
 
   // We need to ensure that the previous base address is aligned to
   // GS_PTR_ALINGMENT
-  int prev_base_slack = ((GS_PTR_NUMERIC_TYPE)new_current % GS_PTR_ALIGNMENT);
-  if(prev_base_slack != GS_PTR_ALIGNMENT)
+  int prev_base_slack = ((GS_MEM_ALLOC_PTR_NUMERIC_TYPE)new_current % GS_MEM_ALLOC_PTR_ALIGNMENT);
+  if(prev_base_slack != GS_MEM_ALLOC_PTR_ALIGNMENT)
   {
     new_current -= prev_base_slack;
   }
@@ -641,9 +675,9 @@ gs_stack_push_all(GSStack* stack,
   }
 
   GS_ASSERT(stack->p_current && "GSStack previous base cannot be set to NULL");
-  *(GS_PTR_NUMERIC_TYPE*)(new_current) = (GS_PTR_NUMERIC_TYPE)stack->p_current;
+  *(GS_MEM_ALLOC_PTR_NUMERIC_TYPE*)(new_current) = (GS_MEM_ALLOC_PTR_NUMERIC_TYPE)stack->p_current;
   *size = GS_PTR_DIFF(new_current, ret);
-  stack->p_current = new_current + GS_PTR_ALIGNMENT; 
+  stack->p_current = new_current + GS_MEM_ALLOC_PTR_ALIGNMENT; 
 
 #ifdef GS_MEM_ALLOC_INITIALIZE_TO_ZERO
   memset(ret, 0, *size);
@@ -654,6 +688,7 @@ gs_stack_push_all(GSStack* stack,
   return alloc;
 }
 
+GS_MEM_ALLOC_VISIBILITY
 void*
 gs_stack_push_all_CHECKED(GSStack* stack, 
                             unsigned int alignment,
@@ -668,6 +703,7 @@ gs_stack_push_all_CHECKED(GSStack* stack,
   return gs_alloc_ptr(&alloc);
 }
 
+GS_MEM_ALLOC_VISIBILITY
 void
 gs_stack_pop(GSStack* stack, 
                    void* ptr)
@@ -675,7 +711,7 @@ gs_stack_pop(GSStack* stack,
   void* prev_stack_base = stack->p_begin;
   if(stack->p_current != stack->p_begin)
   {
-    prev_stack_base = (void*)(*(unsigned long long *)(((char*)stack->p_current) - GS_PTR_ALIGNMENT));
+    prev_stack_base = (void*)(*(unsigned long long *)(((char*)stack->p_current) - GS_MEM_ALLOC_PTR_ALIGNMENT));
   }
   
   GS_ASSERT(prev_stack_base <= ptr && 
@@ -686,6 +722,7 @@ gs_stack_pop(GSStack* stack,
   stack->p_current = prev_stack_base;
 }
 
+GS_MEM_ALLOC_VISIBILITY
 void
 gs_stack_flush(GSStack* stack)
 {
@@ -698,13 +735,14 @@ gs_stack_flush(GSStack* stack)
 ////////////////// SCRATCH  ////////////////////
 ////////////////////////////////////////////////
 
+GS_MEM_ALLOC_VISIBILITY
 GSScratch
 gs_scratch_init(void* base_addr, 
                 unsigned long long size)
 {
   GS_ASSERT(base_addr != NULL && 
             "GSScratch base addr cannot be NULL")
-  GS_ASSERT(((unsigned long long)base_addr % GS_MIN_ALIGNMENT) == 0 && 
+  GS_ASSERT(((unsigned long long)base_addr % GS_MEM_ALLOC_MIN_ALIGNMENT) == 0 && 
             "GSScratch mem ptr must be aligned to GS_MIN_ALINGMENT")
 
   GSScratch scratch;
@@ -715,6 +753,7 @@ gs_scratch_init(void* base_addr,
   return scratch;
 }
 
+GS_MEM_ALLOC_VISIBILITY
 GSAlloc
 gs_scratch_push(GSScratch* scratch, 
                  unsigned long long size, 
@@ -724,7 +763,7 @@ gs_scratch_push(GSScratch* scratch,
   void* ret = scratch->p_current;
   GS_ALIGN_PTR(ret, alignment)
 
-  GS_ASSERT(((GS_PTR_NUMERIC_TYPE)ret) % alignment == 0 && 
+  GS_ASSERT(((GS_MEM_ALLOC_PTR_NUMERIC_TYPE)ret) % alignment == 0 && 
             "GSScrachMemAlloc aligned address is not correclty computed")
 
   char* new_current = ((char*)ret) + size;
@@ -746,6 +785,7 @@ gs_scratch_push(GSScratch* scratch,
   return alloc;
 }
 
+GS_MEM_ALLOC_VISIBILITY
 void*
 gs_scratch_push_CHECKED(GSScratch* scratch, 
                          unsigned long long size, 
@@ -760,6 +800,7 @@ gs_scratch_push_CHECKED(GSScratch* scratch,
   return gs_alloc_ptr(&alloc);
 }
 
+GS_MEM_ALLOC_VISIBILITY
 GSAlloc
 gs_scratch_push_all(GSScratch* scratch, 
                      unsigned int alignment,
@@ -769,7 +810,7 @@ gs_scratch_push_all(GSScratch* scratch,
   void* ret = scratch->p_current;
   GS_ALIGN_PTR(ret, alignment);
 
-  GS_ASSERT(((GS_PTR_NUMERIC_TYPE)ret) % alignment == 0 && 
+  GS_ASSERT(((GS_MEM_ALLOC_PTR_NUMERIC_TYPE)ret) % alignment == 0 && 
             "GSScrachMemAlloc aligned address is not correclty computed")
 
   if((char*)ret >= (char*)scratch->p_end)
@@ -780,7 +821,7 @@ gs_scratch_push_all(GSScratch* scratch,
     return alloc;
   }
 
-  *size = ((GS_PTR_NUMERIC_TYPE)scratch->p_end) - ((GS_PTR_NUMERIC_TYPE)ret);
+  *size = ((GS_MEM_ALLOC_PTR_NUMERIC_TYPE)scratch->p_end) - ((GS_MEM_ALLOC_PTR_NUMERIC_TYPE)ret);
   scratch->p_current = scratch->p_end;
 
 #ifdef GS_MEM_ALLOC_INITIALIZE_TO_ZERO
@@ -792,6 +833,7 @@ gs_scratch_push_all(GSScratch* scratch,
   return alloc;
 }
 
+GS_MEM_ALLOC_VISIBILITY
 void*
 gs_scratch_push_all_CHECKED(GSScratch* scratch, 
                              unsigned int alignment,
@@ -806,6 +848,7 @@ gs_scratch_push_all_CHECKED(GSScratch* scratch,
   return gs_alloc_ptr(&alloc);
 }
 
+GS_MEM_ALLOC_VISIBILITY
 void
 gs_scratch_flush(GSScratch* scratch)
 {
@@ -819,6 +862,7 @@ gs_scratch_flush(GSScratch* scratch)
 ////////////////////////////////////////////////
 
 
+GS_MEM_ALLOC_VISIBILITY
 GSPool
 gs_pool_init(void* mem_ptr, 
                        unsigned long long size, 
@@ -835,9 +879,9 @@ gs_pool_init(void* mem_ptr,
   pool.alignment = alignment;
   pool.p_next_free = NULL;
 
-  if(pool.bsize < sizeof(GS_PTR_NUMERIC_TYPE))
+  if(pool.bsize < sizeof(GS_MEM_ALLOC_PTR_NUMERIC_TYPE))
   {
-    pool.bsize = sizeof(GS_PTR_NUMERIC_TYPE);
+    pool.bsize = sizeof(GS_MEM_ALLOC_PTR_NUMERIC_TYPE);
   }
   GS_ALIGN_PTR(pool.p_begin, alignment)
 
@@ -853,6 +897,7 @@ gs_pool_init(void* mem_ptr,
 }
 
 
+GS_MEM_ALLOC_VISIBILITY
 void
 gs_pool_flush(GSPool* pool)
 {
@@ -862,6 +907,7 @@ gs_pool_flush(GSPool* pool)
 }
 
 
+GS_MEM_ALLOC_VISIBILITY
 GSAlloc
 gs_pool_alloc(GSPool* pool, 
               unsigned long long size, 
@@ -872,13 +918,13 @@ gs_pool_alloc(GSPool* pool,
   GS_ASSERT(pool->alignment == alignment && 
             "GSPool incompatible alignment in allocation ")
   GS_ASSERT(pool->bsize == size || 
-            (size < sizeof(GS_PTR_NUMERIC_TYPE) && pool->bsize == sizeof(GS_PTR_NUMERIC_TYPE)) && 
+            (size < sizeof(GS_MEM_ALLOC_PTR_NUMERIC_TYPE) && pool->bsize == sizeof(GS_MEM_ALLOC_PTR_NUMERIC_TYPE)) && 
             "GSPool incompatible size in allocation")
 
   char* ret = NULL;
   if(pool->p_next_free != NULL)
   {
-    void* next_free = (void*)*(GS_PTR_NUMERIC_TYPE*)pool->p_next_free;
+    void* next_free = (void*)*(GS_MEM_ALLOC_PTR_NUMERIC_TYPE*)pool->p_next_free;
     ret = pool->p_next_free;
     pool->p_next_free = next_free;
   }
@@ -886,7 +932,7 @@ gs_pool_alloc(GSPool* pool,
   {
     ret = pool->p_current;
     pool->p_current = (char*)pool->p_current + pool->stride;
-    GS_ASSERT((GS_PTR_NUMERIC_TYPE)pool->p_current % alignment == 0)
+    GS_ASSERT((GS_MEM_ALLOC_PTR_NUMERIC_TYPE)pool->p_current % alignment == 0)
   }
 
   if(((unsigned long long)ret) % alignment != 0 )
@@ -913,6 +959,7 @@ gs_pool_alloc(GSPool* pool,
   return alloc;
 }
 
+GS_MEM_ALLOC_VISIBILITY
 void*
 gs_pool_alloc_CHECKED(GSPool* pool, 
               unsigned long long size, 
@@ -928,16 +975,17 @@ gs_pool_alloc_CHECKED(GSPool* pool,
 }
 
 
+GS_MEM_ALLOC_VISIBILITY
 void 
 gs_pool_free(GSPool* pool, 
              void* ptr)
 {
   GS_ASSERT(pool->valid == true && 
             "GSPool cannot free from an invalid pool mem alloc")
-  GS_ASSERT(((GS_PTR_NUMERIC_TYPE)ptr % pool->alignment == 0) && "GSPool this should not happen")
-  GS_ASSERT(((GS_PTR_NUMERIC_TYPE)ptr >= (GS_PTR_NUMERIC_TYPE)pool->p_begin && (GS_PTR_NUMERIC_TYPE)ptr < (GS_PTR_NUMERIC_TYPE)pool->p_current) && "GSPool invalid freed ptr")
+  GS_ASSERT(((GS_MEM_ALLOC_PTR_NUMERIC_TYPE)ptr % pool->alignment == 0) && "GSPool this should not happen")
+  GS_ASSERT(((GS_MEM_ALLOC_PTR_NUMERIC_TYPE)ptr >= (GS_MEM_ALLOC_PTR_NUMERIC_TYPE)pool->p_begin && (GS_MEM_ALLOC_PTR_NUMERIC_TYPE)ptr < (GS_MEM_ALLOC_PTR_NUMERIC_TYPE)pool->p_current) && "GSPool invalid freed ptr")
 
-  *(GS_PTR_NUMERIC_TYPE*)ptr = (GS_PTR_NUMERIC_TYPE)pool->p_next_free;
+  *(GS_MEM_ALLOC_PTR_NUMERIC_TYPE*)ptr = (GS_MEM_ALLOC_PTR_NUMERIC_TYPE)pool->p_next_free;
   pool->p_next_free = ptr;
 }
 
