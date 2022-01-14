@@ -18,10 +18,18 @@ jobs:
       shell: cmd.exe
     steps:
       - checkout
-      - run: PUSHD tests 
-      - run: run_varsall.bat
-      - run: compile_win64.bat /t DEBUG
-      - run: run_tests_win64.bat /t DEBUG
-      - run: compile_win64.bat /t RELEASE
-      - run: run_tests_win64.bat /t RELEASE 
-      - run: POPD
+      - run: 
+          command: run_varsall.bat
+          working_directory: tests
+      - run: 
+          command: compile_win64.bat /t DEBUG
+          working_directory: tests
+      - run: 
+          command: run_tests_win64.bat /t DEBUG
+          working_directory: tests
+      - run: 
+          command: compile_win64.bat /t RELEASE
+          working_directory: tests
+      - run: 
+          command: run_tests_win64.bat /t RELEASE
+          working_directory: tests
