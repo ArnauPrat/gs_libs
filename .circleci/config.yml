@@ -20,16 +20,16 @@ jobs:
       - checkout
       - run: 
           command: run_varsall.bat
-          working_directory: tests
+          working_directory: ./tests
       - run: 
           command: compile_win64.bat /t DEBUG
-          working_directory: tests
+          working_directory: ./tests
       - run: 
           command: run_tests_win64.bat /t DEBUG
-          working_directory: tests
+          working_directory: ./tests
       - run: 
           command: compile_win64.bat /t RELEASE
-          working_directory: tests
+          working_directory: ./tests
       - run: 
           command: run_tests_win64.bat /t RELEASE
-          working_directory: tests
+          working_directory: ./tests
