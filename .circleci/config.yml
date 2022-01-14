@@ -25,7 +25,7 @@ jobs:
           command: run_tests_win64.bat /t DEBUG
           working_directory: ./tests
       - run: 
-          command: compile_win64.bat /t RELEASE
+          command: run_varsall.bat && compile_win64.bat /t RELEASE
           working_directory: ./tests
       - run: 
           command: run_tests_win64.bat /t RELEASE
