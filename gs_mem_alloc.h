@@ -85,8 +85,8 @@
 // GSAlloc, but the pointer directly. However, if GS_MEM_ALLOC_DISABLE_CHECKS
 // is not set, and the allocation would return a NULL ptr, an assert is thrown.
 //
-// Finally, allocator checkpointing is supported, which allows storing the state
-// of an allocator for a later restoration of such state, as follows:
+// Finally, allocator checkpointing is supported for stack and scratch, 
+// which allows storing their state a later restoration of such state, as follows:
 //
 // GSStack stack = gs_stack_init(ptr, size);
 // GSStackCheckpoint stack_checkpoint = GS_STACK_CHECKPOINT(&stack);
@@ -446,13 +446,6 @@ gs_scratch_flush(GSScratch* scratch);                                           
 #define GS_POOL_FLUSH(pool)\
     gs_pool_flush(pool);
 
-#define GS_POOL_CHECKPOINT(_pool)\
-                *(_pool)
-
-#define GS_POOL_RESTORE(_pool, _checkpoint)\
-                *(_pool) = _checkpoint
-
-
 typedef struct GSPool 
 {
   bool              valid;
@@ -464,8 +457,6 @@ typedef struct GSPool
   unsigned int      alignment;
   unsigned int      stride;
 } GSPool;
-
-typedef GSPool GSPoolCheckpoint;
 
  // Returns a new initialized pool maked valid if the operation succeeds
 GS_MEM_ALLOC_VISIBILITY
