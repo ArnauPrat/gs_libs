@@ -9,10 +9,11 @@ orbs:
 workflows:
   tests:
     jobs:
-      - build-and-run
+      - build-and-run-win64
+      - build-and-run-linux64
 
 jobs:     
-  build-and-run:
+  build-and-run-win64:
     executor:
       name: win/default
       shell: cmd.exe
@@ -30,3 +31,22 @@ jobs:
       - run: 
           command: run_tests_win64.bat /t RELEASE
           working_directory: ./tests
+  build-and-run-linux64:
+    docker:
+      - image: microblinkdev/clang-devenv
+    steps:
+      - checkout
+      - run:
+          command: chmod +x compile_linux64.sh && compile_linux64.sh -t DEBUG
+          working_directory: ./tests
+      - run: 
+          command: chmod +x run_tsts_linux64.sh && run_tests_linux64.sh -t DEBUG
+          working_directory: ./tests
+      - run:
+          command: chmod +x compile_linux64.sh && compile_linux64.sh -t RELEASE
+          working_directory: ./tests
+      - run: 
+          command: chmod +x run_tsts_linux64.sh && run_tests_linux64.sh -t RELEASE
+          working_directory: ./tests
+
+          
