@@ -37,16 +37,16 @@ jobs:
     steps:
       - checkout
       - run:
-          command: chmod +x compile_linux64.sh && compile_linux64.sh -t DEBUG
+          command: chmod +x compile_linux64.sh && ./compile_linux64.sh -t DEBUG
           working_directory: ./tests
       - run: 
-          command: chmod +x run_tsts_linux64.sh && run_tests_linux64.sh -t DEBUG
+          command: chmod +x run_tsts_linux64.sh && ./run_tests_linux64.sh -t DEBUG
           working_directory: ./tests
       - run:
-          command: chmod +x compile_linux64.sh && compile_linux64.sh -t RELEASE
+          command: chmod +x compile_linux64.sh && ./compile_linux64.sh -t RELEASE
           working_directory: ./tests
       - run: 
-          command: chmod +x run_tsts_linux64.sh && run_tests_linux64.sh -t RELEASE
+          command: chmod +x run_tsts_linux64.sh && ./run_tests_linux64.sh -t RELEASE
           working_directory: ./tests
 
           
