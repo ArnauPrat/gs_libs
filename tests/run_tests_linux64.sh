@@ -26,7 +26,7 @@ then
     exit 1
 fi
 
-echo "RUNNING TESTS WITH TARGET ${TARGET}
+echo "RUNNING TESTS WITH TARGET ${TARGET}"
 
 BUILD_DIR="build_linux64_${TARGET}"
 TESTS="gs_mem_alloc_test"
