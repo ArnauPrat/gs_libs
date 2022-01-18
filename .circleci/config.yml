@@ -33,7 +33,7 @@ jobs:
           working_directory: ./tests
   build-and-run-linux64:
     docker:
-      - image: microblinkdev/clang-devenv
+      - image: microblinkdev/clang-devenv:12.0.1 
     steps:
       - checkout
       - run:
