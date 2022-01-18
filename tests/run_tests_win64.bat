@@ -5,8 +5,6 @@ REM build directory
 
 SET EXITCODE=0
 SET TARGET=""
-SET CLANG_OPTIONS=""
-SET INCLUDES=/I ..\
 
 REM "Processing script parameters"
 :loop
@@ -24,7 +22,7 @@ IF %TARGET%=="" (
    GOTO Failure
 )
 
-ECHO "BUILING TESTS WITH TARGET %TARGET%"
+ECHO "RUNNING TESTS WITH TARGET %TARGET%"
 
 SET BUILD_DIR=build_win64_%TARGET%
 MKDIR %BUILD_DIR%
@@ -41,7 +39,6 @@ FOR %%a in (%TESTS%) do (
     ECHO %%a run successful 
   )
 ) 
-
 
 GOTO Success
 
